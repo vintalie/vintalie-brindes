@@ -4,6 +4,7 @@ import low from "lowdb";
 import FileSync from "lowdb/adapters/FileSync";
 import { TiendanubeAuthInterface } from "@features/auth";
 import { HttpErrorException } from "@utils";
+import { getKnex } from "@config/database";
 
 /**
  * this repository is temporary, please use real database to production mode
@@ -24,12 +25,60 @@ interface IDatabase {
 const adapter = new FileSync<IDatabase>(path.resolve("db.json"));
 const database = low(adapter);
 
+const knex = getKnex();
+
 class UserRepository {
-  save(credential: TiendanubeAuthInterface) {
+  async save(credential: TiendanubeAuthInterface) {
+    if (knex) {
+      // upsert using knex (MySQL)
+      try {
+        await knex("credentials")
+          .insert({
+            user_id: credential.user_id,
+            access_token: credential.access_token,
+            token_type: credential.token_type,
+            scope: credential.scope,
+            error: credential.error,
+            error_description: credential.error_description,
+          })
+          .onConflict("user_id")
+          .merge();
+        return;
+      } catch (e) {
+        // fallback to file
+        // eslint-disable-next-line no-console
+          console.warn("UserRepository.save: mysql error, falling back to file", (e as any).message || e);
+      }
+    }
+
     this.createOrUpdate(credential);
   }
 
-  findOne(user_id: number) {
+  async findOne(user_id: number) {
+    if (knex) {
+      try {
+        const row = await knex("credentials").where({ user_id: Number(user_id) }).first();
+        if (!row) {
+          throw new HttpErrorException("Read our documentation on how to authenticate your app").setStatusCode(404);
+        }
+
+        const result: TiendanubeAuthInterface = {
+          access_token: row.access_token,
+          token_type: row.token_type,
+          scope: row.scope,
+          user_id: Number(row.user_id),
+          error: row.error,
+          error_description: row.error_description,
+        };
+        return result;
+      } catch (e) {
+        if (e instanceof HttpErrorException) throw e;
+        // fallback to file-based repository
+        // eslint-disable-next-line no-console
+        console.warn("UserRepository.findOne: mysql read error, falling back to file", (e as any).message || e);
+      }
+    }
+
     const credentials = database.get("credentials").value();
     const store = this.findValueFromProperty<TiendanubeAuthInterface, number>(
       "user_id",
@@ -47,6 +96,7 @@ class UserRepository {
   }
 
   findFirst(): TiendanubeAuthInterface {
+    // For simplicity keep synchronous behaviour for findFirst using file DB
     return database.get("credentials").value()?.[0];
   }
 

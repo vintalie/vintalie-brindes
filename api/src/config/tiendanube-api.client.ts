@@ -11,11 +11,11 @@ export const tiendanubeApiClient = axios.create({
 });
 
 tiendanubeApiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
     // Do something before request is sent
-    const { access_token } = userRepository.findOne(
-      +config.url?.split("/")[0]!!
-    );
+    const idPart = config.url?.split("/")[0] ?? "0";
+    const storeId = Number(idPart);
+    const { access_token } = await userRepository.findOne(storeId);
     config.headers["Authentication"] = `bearer ${access_token}`;
     return config;
   },

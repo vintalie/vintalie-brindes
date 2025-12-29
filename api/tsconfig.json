@@ -16,10 +16,14 @@
     "typeRoots": ["./src/typings", "./node_modules/@types"],
     "paths": {
       "@utils": ["./src/utils"],
+      "@utils/*": ["./src/utils/*"],
       "@features/*": ["./src/features/*"],
       "@config": ["./src/config"],
+      "@config/*": ["./src/config/*"],
       "@middlewares": ["./src/middlewares"],
-      "@repository": ["./src/repository"]
+      "@middlewares/*": ["./src/middlewares/*"],
+      "@repository": ["./src/repository"],
+      "@repository/*": ["./src/repository/*"]
     }
   },
   "include": ["src/**/*"],
