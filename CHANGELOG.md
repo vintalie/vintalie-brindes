@@ -58,6 +58,29 @@ Todas as mudanças significativas neste projeto serão registradas neste arquivo
   - Implementado `EligibleRepository`, `EligibleService` e `webhook.handler` para marcar clientes elegíveis quando detectada a primeira compra (`api/src/repository/EligibleRepository.ts`, `api/src/features/eligible/*`).
   - Adicionado endpoint protegido `GET /gift/eligible` que retorna o brinde ativo para um cliente elegível.
 
+  - Adicionado endpoint protegido `POST /gift/eligible/apply` para marcar a elegibilidade como aplicada após adicionar o brinde ao carrinho.
+  - O frontend (`NexoSyncRoute`) agora tenta detectar navegação para `/orders` ou `/checkout`, consulta `GET /gift/eligible?customer_id=...` e, se houver brinde, tenta adicionar ao carrinho via `nexo` e chama `POST /gift/eligible/apply`.
+
+### Testes e verificação
+
+- Adicionadas dependências de teste no frontend: `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `@testing-library/dom`.
+- Esqueleto de testes criado: `frontend/tests/Gift.test.tsx`, configuração `frontend/vitest.config.ts` e `frontend/tests/setup.ts`.
+- Resultado dos testes unitários (executado localmente): 1 teste unitário — `Gift page renders header` — passou com sucesso.
+
+### Sprint: Adicionar frontend de checkout — Finalizado
+
+- Aprimorado `NexoSyncRoute` para usar o cliente `axios` do frontend e gerenciar chamadas ao backend com token de sessão.
+- Fluxo coberto: detecção de navegação para `/orders` ou `/checkout`, verificação de elegibilidade (`GET /gift/eligible`), tentativa de adicionar o brinde ao carrinho via `nexo` (vários métodos compatíveis) e marcação de elegibilidade aplicada (`POST /gift/eligible/apply`).
+- Melhor tratamento de erros: tentativas registradas, marcação aplicada tentada mesmo se o add-to-cart falhar, toasts informativos no UI.
+- Resultado: fluxo implementado e testado em unidade (front-end). Integração com ambiente embed (Nexo) e validação em produção ainda precisam de verificação manual.
+
+### Webhook: início da validação HMAC
+
+- Iniciado suporte à verificação HMAC para webhooks:
+  - Adicionado utilitário `api/src/utils/webhook.ts` com funções `computeHmacSha256` e `verifyHmacHeader`.
+  - Ajustada rota `POST /webhooks/order` em `api/src/config/routes.ts` para capturar o corpo bruto (`rawBody`) e verificar a assinatura quando a variável de ambiente `WEBHOOK_SECRET` estiver configurada. Se a assinatura for inválida, o endpoint retorna `401`.
+  - Observação: a verificação só é aplicada se `WEBHOOK_SECRET` estiver definida; é um início de implementação e pode requerer ajustes de acordo com o formato exato de assinatura enviado pelo provedor (hex/base64/prefix `sha256=`).
+
 
 
 

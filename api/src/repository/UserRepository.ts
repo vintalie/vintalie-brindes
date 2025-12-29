@@ -95,6 +95,29 @@ class UserRepository {
     return store;
   }
 
+  async listAll(): Promise<TiendanubeAuthInterface[]> {
+    if (knex) {
+      try {
+        const rows = await knex('credentials').select();
+        return rows.map((row: any) => ({
+          access_token: row.access_token,
+          token_type: row.token_type,
+          scope: row.scope,
+          user_id: Number(row.user_id),
+          error: row.error,
+          error_description: row.error_description,
+        }));
+      } catch (e) {
+        // fallback to file
+        // eslint-disable-next-line no-console
+        console.warn('UserRepository.listAll: mysql read error, falling back to file', (e as any).message || e);
+      }
+    }
+
+    const credentials = database.get('credentials').value() ?? [];
+    return credentials as TiendanubeAuthInterface[];
+  }
+
   findFirst(): TiendanubeAuthInterface {
     // For simplicity keep synchronous behaviour for findFirst using file DB
     return database.get("credentials").value()?.[0];
